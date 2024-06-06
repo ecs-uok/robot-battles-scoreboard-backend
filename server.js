@@ -28,7 +28,7 @@ app.locals.pitOpenTime= 60;
 app.use(express.json());
 app.use(cors());
 
-app.locals.gameDetails={gameId:"",team1:{id:"",name:"",leader:"",score:"",logo:""},team2:{id:"",name:"",leader:"",score:"",logo:""}};
+app.locals.gameDetails={gameId:0,team1:{id:"",name:"",leader:"",score:"",logo:""},team2:{id:"",name:"",leader:"",score:"",logo:""}};
 app.locals.team2={};
 
 app.locals.mainTime=0;
@@ -127,7 +127,7 @@ app.get('/timer', (req, res) => {
     res.write('timer connected');
 
     setInterval(() => {
-        const data= { mainTime:`${app.locals.mainTimeRunner}`, pitTime:`${app.locals.pitTimeRunner}`, gameId:`${app.locals.gameId}`}
+        const data= { mainTime:`${app.locals.mainTimeRunner}`, pitTime:`${app.locals.pitTimeRunner}`, gameId:`${app.locals.gameDetails.gameId}`}
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     }, 1000);
     // Close the connection when the client disconnects
