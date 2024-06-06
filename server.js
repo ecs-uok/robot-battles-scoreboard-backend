@@ -1,15 +1,35 @@
-const express= require('express');
-const cors= require('cors');
+import express from 'express';
+import cors from 'cors';
+import fetch from 'node-fetch';
 
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, update, get, child  } from "firebase/database";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAOAKfi_6Ie6YW27wH8FTZyjbbkG0eY5EI",
+    authDomain: "robot-battles-scoreboard.firebaseapp.com",
+    databaseURL: "https://robot-battles-scoreboard-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "robot-battles-scoreboard",
+    storageBucket: "robot-battles-scoreboard.appspot.com",
+    messagingSenderId: "596745362832",
+    appId: "1:596745362832:web:c45f2fbf0c3e654125e715",
+    measurementId: "G-6HL7TYFNJG"
+  };
+const firebase= initializeApp(firebaseConfig);
+const database= getDatabase(firebase);
 
 const port = process.env.PORT || 5000;
 
 const app = express();
+app.locals.pitOpenTime= 60;
+
+
+
 app.use(express.json());
 app.use(cors());
 
-app.locals.team1;
-app.locals.team2;
+app.locals.gameDetails={gameId:"",team1:{id:"",name:"",leader:"",score:"",logo:""},team2:{id:"",name:"",leader:"",score:"",logo:""}};
+app.locals.team2={};
 
 app.locals.mainTime=0;
 app.locals.mainTimeRunner=0;
@@ -19,6 +39,9 @@ function mainCountdown(){
         clearInterval(app.locals.mainTimer);
     }else{
         app.locals.mainTimeRunner--;
+        if(app.locals.mainTimeRunner<=app.locals.pitOpenTime){
+            writePitOpen(true);
+        }
     }
     console.log(app.locals.mainTimeRunner);
 }
@@ -48,6 +71,20 @@ app.post("/setPit", (req, res) =>{
     console.log(app.locals.pitTimeRunner);
     res.end();
 });
+app.post("/setPitOpen", (req, res) =>{
+    const details= req.body;
+    app.locals.pitOpenTime= details.pitOpenTime;
+    res.end();
+});
+app.post("/setGameDetails",async (req,res)=>{
+    const details= req.body;
+    app.locals.gameDetails.team1= await getTeamDetails(details.team1);
+    app.locals.gameDetails.team2= await getTeamDetails(details.team2);
+    app.locals.gameDetails.gameId=details.gameId;
+    res.end();
+})
+
+
 app.post("/startMain", (req, res) =>{
     app.locals.mainTimer = setInterval(mainCountdown, 1000);
     res.end();
@@ -71,6 +108,7 @@ app.post("/stopPit",(req,res)=>{
 app.put("/resetMain",(req,res)=>{
     clearInterval(app.locals.mainTimer);
     app.locals.mainTimeRunner=app.locals.mainTime;
+    writePitOpen(false);
     res.end();
 })
 
@@ -96,8 +134,74 @@ app.get('/timer', (req, res) => {
     req.on('close', () => res.end('OK'))
 });
 
-app.get("/teams", (req,res)=>{
-    res.json({"users": ["user1","user2"]});
+app.get("/gameId", (req,res)=>{
+    res.writeHead(200,{
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    })
+    res.write('timer connected'); 
+
+    setInterval(() => {
+        const data= { gameId:`${app.locals.gameId}`}
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }, 1000);
+    // Close the connection when the client disconnects
+    req.on('close', () => res.end('OK'))
 })
+
+app.get("/getGameDetails", (req,res)=>{
+    const body= app.locals.gameDetails
+    res.writeHead(200, {"Content-Type": "application/json"});
+    res.write(JSON.stringify(body));
+    res.end();
+})
+
+app.get("/teams", async(req,res)=>{
+    const body= await getTeams();
+    res.writeHead(200, {"Content-Type": "application/json"});
+    res.write(JSON.stringify(body));
+    res.end();
+})
+
+//Database actions
+function writePitOpen(stat){
+    update(ref(database,'/'),{
+        pitopen: stat
+    });
+}
+async function getTeamDetails(teamid){
+    const dbRef = ref(database);
+    return await get(child(dbRef, `teams/${teamid}`)).then((snapshot) => {
+    if (snapshot.exists()) {
+        let team= snapshot.val();
+        team={id:teamid,name:team.name,leader:team.leader,score:"",logo:team.logo}
+        console.log(team)
+        return team;
+    } else {
+        console.log("No data available");
+        return {id:"",name:"",leader:"",score:"",logo:""}
+    }
+    }).catch((error) => {
+        console.error(error);
+        return {id:"",name:"",leader:"",score:"",logo:""}
+    });
+    
+}
+
+async function getTeams(){
+    const dbRef = ref(database);
+    return await get(child(dbRef, `teams/`)).then((snapshot) => {
+    if (snapshot.exists()) {
+        return snapshot.val();
+    } else {
+        console.log("No data available");
+        return {}
+    }
+    }).catch((error) => {
+        console.error(error);
+        return {}
+    });
+}
 
 app.listen(port, ()=> {console.log(`Server started on port ${port}`)})

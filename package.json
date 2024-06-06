@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "server for robot battles scoreboard",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server",
@@ -13,7 +14,9 @@
   "dependencies": {
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "firebase": "^10.12.2",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "express": "^4.19.2",
