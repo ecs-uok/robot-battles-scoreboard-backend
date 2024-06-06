@@ -86,11 +86,16 @@ app.post("/setGameDetails",async (req,res)=>{
 
 
 app.post("/startMain", (req, res) =>{
+    clearInterval(app.locals.mainTimer);
+    if(pitOpenTime<app.locals.mainTimeRunner){
+        writePitOpen(false);
+    }
     app.locals.mainTimer = setInterval(mainCountdown, 1000);
     res.end();
 });
 
 app.post("/startPit", (req, res) =>{
+    clearInterval(app.locals.pitTimer);
     app.locals.pitTimer = setInterval(pitCountdown, 1000);
     res.end();
 });
