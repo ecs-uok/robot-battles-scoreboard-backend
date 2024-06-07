@@ -62,6 +62,7 @@ app.post("/setMain", (req, res) =>{
     app.locals.mainTime= req.body.mainTime;
     app.locals.mainTimeRunner= app.locals.mainTime;
     console.log(app.locals.mainTimeRunner);
+    writePitOpen(false);
     res.end();
 });
 app.post("/setPit", (req, res) =>{
@@ -155,6 +156,13 @@ app.get("/gameId", (req,res)=>{
     req.on('close', () => res.end('OK'))
 })
 
+app.get("/nextGameId", async (req,res)=>{
+    const body= await getGameCount();
+    res.writeHead(200, {"Content-Type": "application/json"});
+    res.write(JSON.stringify(body));
+    res.end();
+})
+
 app.get("/getGameDetails", (req,res)=>{
     const body= app.locals.gameDetails
     res.writeHead(200, {"Content-Type": "application/json"});
@@ -173,6 +181,22 @@ app.get("/teams", async(req,res)=>{
 function writePitOpen(stat){
     update(ref(database,'/'),{
         pitopen: stat
+    });
+}
+
+async function getGameCount(){
+    const dbRef = ref(database);
+    return await get(child(dbRef, `games`)).then((snapshot) => {
+    if (snapshot.exists()) {
+        let count= snapshot.size +1
+        return {gameId:count};
+    } else {
+        console.log("No data available");
+        return {gameId:""}
+    }
+    }).catch((error) => {
+        console.error(error);
+        return {gameId:""}
     });
 }
 async function getTeamDetails(teamid){
