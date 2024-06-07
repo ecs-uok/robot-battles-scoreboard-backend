@@ -133,7 +133,7 @@ app.get('/timer', (req, res) => {
     res.write('timer connected');
 
     setInterval(() => {
-        const data= { mainTime:`${app.locals.mainTimeRunner}`, pitTime:`${app.locals.pitTimeRunner}`, gameId:`${app.locals.gameDetails.gameId}`}
+        const data= { mainTime:`${app.locals.mainTimeRunner}`, pitTime:`${app.locals.pitTimeRunner}`, gameId:`${app.locals.gameDetails.gameId}`, team1Id:`${app.locals.gameDetails.team1.id}`, team2Id:`${app.locals.gameDetails.team2.id}`}
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     }, 1000);
     // Close the connection when the client disconnects
