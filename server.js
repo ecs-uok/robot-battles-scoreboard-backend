@@ -22,7 +22,7 @@ const port = process.env.PORT || 5000;
 
 const app = express();
 app.locals.pitOpenTime= 60;
-
+app.locals.controlPage= 1;
 
 
 app.use(express.json());
@@ -88,7 +88,7 @@ app.post("/setGameDetails",async (req,res)=>{
 
 app.post("/startMain", (req, res) =>{
     clearInterval(app.locals.mainTimer);
-    if(pitOpenTime<app.locals.mainTimeRunner){
+    if(app.locals.pitOpenTime<app.locals.mainTimeRunner){
         writePitOpen(false);
     }
     app.locals.mainTimer = setInterval(mainCountdown, 1000);
