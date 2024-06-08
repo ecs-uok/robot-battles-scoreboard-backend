@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import fetch from 'node-fetch';
 
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, update, get, child , set } from "firebase/database";
@@ -265,6 +264,7 @@ async function getAllGames(){
 }
 
 async function saveGame(gameId,team1name,team2name,team1score,team2score){
+    console.log(gameId+','+team1name+','+team2name+','+team1score+','+team2score)
     if(gameId && team1name && team2name && team1score && team2score){
     await set(ref(database, 'games/' + (gameId-1)), {
         gameid: gameId,
@@ -283,8 +283,10 @@ async function saveGame(gameId,team1name,team2name,team1score,team2score){
             console.error(error);
             return {message:"Error!"}
         });
+    }else{
+        return {message:"Game details not set!"}
     }
-    return {message:"Game details not set!"}
+    
 }
 
 app.listen(port, ()=> {console.log(`Server started on port ${port}`)})
