@@ -185,7 +185,7 @@ app.get("/games", async(req,res)=>{
 
 app.post("/saveGame", async(req,res)=>{
     const content  = req.body;
-    const body= await saveGame(app.locals.gameDetails.gameId,app.locals.gameDetails.team1.name, app.locals.gameDetails.name, content.team1score, content.team2score);
+    const body= await saveGame(app.locals.gameDetails.gameId,app.locals.gameDetails.team1.name, app.locals.gameDetails.team2.name, content.team1score, content.team2score);
     res.writeHead(200, {"Content-Type": "application/json"});
     res.write(JSON.stringify(body));
     res.end();
