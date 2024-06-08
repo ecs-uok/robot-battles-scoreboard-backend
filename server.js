@@ -273,13 +273,8 @@ async function saveGame(gameId,team1name,team2name,team1score,team2score){
         team2name: team2name,
         team2score: team2score
     }).then((snapshot) => {
-        if (snapshot.exists()) {
-            return {message:"Saved Scores Successfuly"};
-        } else {
-            console.log("No data available");
-            return {message:"Error!"}
-        }
-        }).catch((error) => {
+        return {message:"Saved Scores Successfuly"};}
+        ).catch((error) => {
             console.error(error);
             return {message:"Error!"}
         });
