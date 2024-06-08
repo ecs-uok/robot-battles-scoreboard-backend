@@ -201,6 +201,7 @@ async function getGameCount(){
 }
 async function getTeamDetails(teamid){
     const dbRef = ref(database);
+    console.log(teamid)
     return await get(child(dbRef, `teams/${teamid}`)).then((snapshot) => {
     if (snapshot.exists()) {
         let team= snapshot.val();
