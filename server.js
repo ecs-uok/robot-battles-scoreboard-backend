@@ -3,7 +3,7 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, update, get, child  } from "firebase/database";
+import { getDatabase, ref, update, get, child , set } from "firebase/database";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAOAKfi_6Ie6YW27wH8FTZyjbbkG0eY5EI",
@@ -177,6 +177,21 @@ app.get("/teams", async(req,res)=>{
     res.end();
 })
 
+app.get("/games", async(req,res)=>{
+    const body= await getAllGames();
+    res.writeHead(200, {"Content-Type": "application/json"});
+    res.write(JSON.stringify(body));
+    res.end();
+})
+
+app.post("/saveGame", async(req,res)=>{
+    const content  = req.body;
+    const body= await saveGame(app.locals.gameDetails.gameId,app.locals.gameDetails.team1.name, app.locals.gameDetails.name, content.team1score, content.team2score);
+    res.writeHead(200, {"Content-Type": "application/json"});
+    res.write(JSON.stringify(body));
+    res.end();
+})
+
 //Database actions
 function writePitOpen(stat){
     update(ref(database,'/'),{
@@ -232,6 +247,44 @@ async function getTeams(){
         console.error(error);
         return {}
     });
+}
+
+async function getAllGames(){
+    const dbRef = ref(database);
+    return await get(child(dbRef, `games/`)).then((snapshot) => {
+    if (snapshot.exists()) {
+        return snapshot.val();
+    } else {
+        console.log("No data available");
+        return {}
+    }
+    }).catch((error) => {
+        console.error(error);
+        return {}
+    });
+}
+
+async function saveGame(gameId,team1name,team2name,team1score,team2score){
+    if(gameId && team1name && team2name && team1score && team2score){
+    await set(ref(database, 'games/' + (gameId-1)), {
+        gameid: gameId,
+        team1name: team1name,
+        team1score : team1score,
+        team2name: team2name,
+        team2score: team2score
+    }).then((snapshot) => {
+        if (snapshot.exists()) {
+            return {message:"Saved Scores Successfuly"};
+        } else {
+            console.log("No data available");
+            return {message:"Error!"}
+        }
+        }).catch((error) => {
+            console.error(error);
+            return {message:"Error!"}
+        });
+    }
+    return {message:"Game details not set!"}
 }
 
 app.listen(port, ()=> {console.log(`Server started on port ${port}`)})
