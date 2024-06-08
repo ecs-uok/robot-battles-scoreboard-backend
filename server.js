@@ -267,17 +267,13 @@ async function saveGame(gameId,team1name,team2name,team1score,team2score){
     console.log(gameId+','+team1name+','+team2name+','+team1score+','+team2score)
     if(gameId && team1name && team2name && team1score && team2score){
     await set(ref(database, 'games/' + (gameId-1)), {
-        gameid: gameId,
-        team1name: team1name,
-        team1score : team1score,
-        team2name: team2name,
-        team2score: team2score
-    }).then((snapshot) => {
-        return {message:"Saved Scores Successfuly"};}
-        ).catch((error) => {
-            console.error(error);
-            return {message:"Error!"}
-        });
+        gameid: ""+gameId,
+        team1name: ""+team1name,
+        team1score : ""+team1score,
+        team2name: ""+team2name,
+        team2score: ""+team2score
+    })
+    return {message:"Saved Scores Successfuly"};
     }else{
         return {message:"Game details not set!"}
     }
