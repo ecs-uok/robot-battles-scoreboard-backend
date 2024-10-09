@@ -33,6 +33,8 @@ app.locals.team2={};
 app.locals.mainTime=0;
 app.locals.mainTimeRunner=0;
 app.locals.mainTimer;
+app.locals.winnerId=null;
+
 function mainCountdown(){
     if (app.locals.mainTimeRunner==0){
         clearInterval(app.locals.mainTimer);
@@ -81,6 +83,7 @@ app.post("/setGameDetails",async (req,res)=>{
     app.locals.gameDetails.team1= await getTeamDetails(details.team1);
     app.locals.gameDetails.team2= await getTeamDetails(details.team2);
     app.locals.gameDetails.gameId=details.gameId;
+    app.locals.winnerId=null;
     res.end();
 })
 
@@ -132,7 +135,7 @@ app.get('/timer', (req, res) => {
     res.write('timer connected');
 
     setInterval(() => {
-        const data= { mainTime:`${app.locals.mainTimeRunner}`, pitTime:`${app.locals.pitTimeRunner}`, gameId:`${app.locals.gameDetails.gameId}`, team1Id:`${app.locals.gameDetails.team1.id}`, team2Id:`${app.locals.gameDetails.team2.id}`}
+        const data= { mainTime:`${app.locals.mainTimeRunner}`, pitTime:`${app.locals.pitTimeRunner}`, gameId:`${app.locals.gameDetails.gameId}`, team1Id:`${app.locals.gameDetails.team1.id}`, team2Id:`${app.locals.gameDetails.team2.id}`, winnerId:`${app.locals.winnerId}`}
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     }, 1000);
     // Close the connection when the client disconnects
@@ -273,6 +276,13 @@ async function saveGame(gameId,team1name,team2name,team1score,team2score){
         team2name: ""+team2name,
         team2score: ""+team2score
     })
+    if(team1score>team2score){
+        winnerId= team1Id
+    }else if(team2score>team1score){
+        winnerId= team2Id
+    }else{
+        winnerId= 0;
+    }
     return {message:"Saved Scores Successfuly"};
     }else{
         return {message:"Game details not set!"}
