@@ -277,9 +277,9 @@ async function saveGame(gameId,team1name,team2name,team1score,team2score){
         team2score: ""+team2score
     })
     if(team1score>team2score){
-        winnerId= team1Id
+        winnerId= gameDetails.team1.id
     }else if(team2score>team1score){
-        winnerId= team2Id
+        winnerId= gameDetails.team2.id
     }else{
         winnerId= 0;
     }
