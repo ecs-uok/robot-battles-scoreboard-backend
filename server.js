@@ -277,11 +277,11 @@ async function saveGame(gameId,team1name,team2name,team1score,team2score){
         team2score: ""+team2score
     })
     if(team1score>team2score){
-        winnerId= app.locals.gameDetails.team1.id
+        app.locals.winnerId= app.locals.gameDetails.team1.id
     }else if(team2score>team1score){
-        winnerId= app.locals.gameDetails.team2.id
+        app.locals.winnerId= app.locals.gameDetails.team2.id
     }else{
-        winnerId= 0;
+        app.locals.winnerId= 0;
     }
     return {message:"Saved Scores Successfuly"};
     }else{
