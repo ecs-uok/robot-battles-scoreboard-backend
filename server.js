@@ -267,27 +267,67 @@ async function getAllGames(){
 }
 
 async function saveGame(gameId,team1name,team2name,team1score,team2score){
-    console.log(gameId+','+team1name+','+team2name+','+team1score+','+team2score)
-    if(gameId && team1name && team2name && team1score && team2score){
-    await set(ref(database, 'games/' + (gameId-1)), {
-        gameid: ""+gameId,
-        team1name: ""+team1name,
-        team1score : ""+team1score,
-        team2name: ""+team2name,
-        team2score: ""+team2score
-    })
-    if(team1score>team2score){
-        app.locals.winnerId= app.locals.gameDetails.team1.id
-    }else if(team2score>team1score){
-        app.locals.winnerId= app.locals.gameDetails.team2.id
-    }else{
-        app.locals.winnerId= 0;
-    }
-    return {message:"Saved Scores Successfuly"};
+    // Expanded game summary log
+    console.log(
+        `Game Summary:\n` +
+        `  Game ID: ${gameId}\n` +
+        `  Team 1: ${team1name} (ID: ${app.locals.gameDetails.team1.id}) - Score: ${team1score}\n` +
+        `  Team 2: ${team2name} (ID: ${app.locals.gameDetails.team2.id}) - Score: ${team2score}`
+    );
+    if(gameId && team1name && team2name && team1score != null && team2score != null){
+        // Ensure scores are numbers for correct comparison
+        const t1score = Number(team1score);
+        const t2score = Number(team2score);
+        let winnerId = 0;
+        let winnerMsg = "";
+        if(t1score > t2score){
+            winnerId = app.locals.gameDetails.team1.id;
+            app.locals.winnerId = winnerId;
+            await postWinnerPoints(winnerId, 3);
+            winnerMsg = `Winner: ${app.locals.gameDetails.team1.name} (ID: ${winnerId})`;
+        }else if(t2score > t1score){
+            winnerId = app.locals.gameDetails.team2.id;
+            app.locals.winnerId = winnerId;
+            await postWinnerPoints(winnerId, 3);
+            winnerMsg = `Winner: ${app.locals.gameDetails.team2.name} (ID: ${winnerId})`;
+        }else{
+            winnerId = 0;
+            app.locals.winnerId = 0;
+            winnerMsg = "It's a draw. No winner.";
+        }
+        await set(ref(database, 'games/' + (gameId-1)), {
+            gameid: ""+gameId,
+            team1name: ""+team1name,
+            team1score : ""+team1score,
+            team2name: ""+team2name,
+            team2score: ""+team2score,
+            winnerId: winnerId
+        })
+        console.log(winnerMsg); // Only print once after DB update
+        return {message:"Saved Scores Successfuly"};
     }else{
         return {message:"Game details not set!"}
     }
-    
+}
+
+// Helper to update winner's points in the database
+async function postWinnerPoints(teamId, pointsToAdd) {
+    if (!teamId) return;
+    const dbRef = ref(database);
+    const teamRef = child(dbRef, `teams/${teamId}`);
+    let currentPoints = 0;
+    try {
+        const snapshot = await get(teamRef);
+        if (snapshot.exists()) {
+            const team = snapshot.val();
+            currentPoints = parseInt(team.points || 0, 10);
+        }
+    } catch (e) {
+        currentPoints = 0;
+    }
+    await update(ref(database, `teams/${teamId}`), {
+        points: currentPoints + pointsToAdd
+    });
 }
 
 app.listen(port, ()=> {console.log(`Server started on port ${port}`)})
