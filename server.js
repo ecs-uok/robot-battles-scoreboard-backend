@@ -5,14 +5,14 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, update, get, child , set } from "firebase/database";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAOAKfi_6Ie6YW27wH8FTZyjbbkG0eY5EI",
-    authDomain: "robot-battles-scoreboard.firebaseapp.com",
-    databaseURL: "https://robot-battles-scoreboard-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "robot-battles-scoreboard",
-    storageBucket: "robot-battles-scoreboard.appspot.com",
-    messagingSenderId: "596745362832",
-    appId: "1:596745362832:web:c45f2fbf0c3e654125e715",
-    measurementId: "G-6HL7TYFNJG"
+    apiKey: "AIzaSyC81iHYaSwUCYmnCr1Z6OUS-KRzO5z0AQ0",
+  authDomain: "robot-battles-backend.firebaseapp.com",
+  databaseURL: "https://robot-battles-backend-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "robot-battles-backend",
+  storageBucket: "robot-battles-backend.firebasestorage.app",
+  messagingSenderId: "670483214779",
+  appId: "1:670483214779:web:7298aebaf8c627b3b4d49e",
+  measurementId: "G-6BKXH2PGPE"
   };
 const firebase= initializeApp(firebaseConfig);
 const database= getDatabase(firebase);
