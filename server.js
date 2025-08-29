@@ -105,6 +105,7 @@ app.post("/startPit", (req, res) =>{
 
 app.post("/stopMain",(req,res)=>{
     clearInterval(app.locals.mainTimer);
+    app.locals.mainTimer = null;
     res.end();
 })
 
@@ -115,6 +116,7 @@ app.post("/stopPit",(req,res)=>{
 
 app.put("/resetMain",(req,res)=>{
     clearInterval(app.locals.mainTimer);
+    app.locals.mainTimer = null;
     app.locals.mainTimeRunner=app.locals.mainTime;
     writePitOpen(false);
     res.end();
@@ -200,6 +202,36 @@ function writePitOpen(stat){
         pitopen: stat
     });
 }
+
+// Function to get pit status from database
+async function getPitStatus() {
+    const dbRef = ref(database);
+    try {
+        const snapshot = await get(child(dbRef, 'pitopen'));
+        if (snapshot.exists()) {
+            return { pitopen: snapshot.val() };
+        } else {
+            return { pitopen: null };
+        }
+    } catch (error) {
+        console.error(error);
+        return { pitopen: null };
+    }
+}
+
+app.get("/pitstatus", async (req, res) => {
+    const status = await getPitStatus();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(JSON.stringify(status));
+    res.end();
+});
+
+app.get("/timerstatus", (req, res) => {
+    const mainRunning = !!app.locals.mainTimer && !isNaN(app.locals.mainTimeRunner) && app.locals.mainTimeRunner > 0;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(JSON.stringify({ mainRunning }));
+    res.end();
+});
 
 async function getGameCount(){
     const dbRef = ref(database);
@@ -329,5 +361,6 @@ async function postWinnerPoints(teamId, pointsToAdd) {
         points: currentPoints + pointsToAdd
     });
 }
+
 
 app.listen(port, ()=> {console.log(`Server started on port ${port}`)})
