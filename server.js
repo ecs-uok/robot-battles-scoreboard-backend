@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, update, get, child , set } from "firebase/database";
+import { getDatabase, ref, update, get, child , set, remove } from "firebase/database";
 
 const firebaseConfig = {
     apiKey: "AIzaSyC81iHYaSwUCYmnCr1Z6OUS-KRzO5z0AQ0",
@@ -195,6 +195,59 @@ app.post("/saveGame", async(req,res)=>{
     res.write(JSON.stringify(body));
     res.end();
 })
+
+// Add team details to the database
+async function addTeamDetails(team) {
+    if (!team || !team.id) {
+        return { message: "Invalid team data" };
+    }
+    try {
+        await set(ref(database, `teams/${team.id}`), {
+            name: team.name || "",
+            leader: team.leader || "",
+            logo: team.logo || "",
+            points: team.points || 0
+        });
+        return { message: "Team added successfully" };
+    } catch (error) {
+        console.error(error);
+        return { message: "Failed to add team" };
+    }
+}
+
+// Endpoint to add a team
+// Expects: { id, name, leader, logo (URL), points }
+app.post("/addTeam", async (req, res) => {
+    const team = req.body;
+    // The 'logo' field should be a URL to the image (e.g., from Firebase Storage)
+    const result = await addTeamDetails(team);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(JSON.stringify(result));
+    res.end();
+});
+
+// Function to delete a team by ID
+async function deleteTeam(teamId) {
+    if (!teamId) {
+        return { message: "Invalid team ID" };
+    }
+    try {
+        await remove(ref(database, `teams/${teamId}`));
+        return { message: "Team deleted successfully" };
+    } catch (error) {
+        console.error(error);
+        return { message: "Failed to delete team" };
+    }
+}
+
+// Endpoint to delete a team
+app.delete("/deleteTeam/:id", async (req, res) => {
+    const teamId = req.params.id;
+    const result = await deleteTeam(teamId);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(JSON.stringify(result));
+    res.end();
+});
 
 //Database actions
 function writePitOpen(stat){
