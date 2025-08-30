@@ -1,5 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import multer from 'multer';
+import fetch from 'node-fetch';
+import FormData from 'form-data';
 
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, update, get, child , set, remove } from "firebase/database";
@@ -415,5 +418,27 @@ async function postWinnerPoints(teamId, pointsToAdd) {
     });
 }
 
+const upload = multer();
+const FREEIMAGE_API_KEY = '6d207e02198a847aa98d0a2a901485a5';
+
+app.post('/api/upload-logo', upload.single('logo'), async (req, res) => {
+  try {
+    const formData = new FormData();
+    formData.append('source', req.file.buffer, { filename: req.file.originalname });
+    formData.append('type', 'file');
+    formData.append('key', FREEIMAGE_API_KEY);
+
+    const response = await fetch('https://freeimage.host/api/1/upload', {
+      method: 'POST',
+      body: formData,
+      headers: formData.getHeaders(),
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.listen(port, ()=> {console.log(`Server started on port ${port}`)})
