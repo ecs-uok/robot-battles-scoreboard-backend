@@ -14,8 +14,11 @@
   "dependencies": {
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
     "express": "^4.19.2",
-    "firebase": "^10.12.2",
+    "firebase": "^10.14.1",
+    "form-data": "^4.0.4",
+    "multer": "^2.0.2",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {

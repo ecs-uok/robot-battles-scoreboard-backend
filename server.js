@@ -1,19 +1,26 @@
 import express from 'express';
 import cors from 'cors';
+import multer from 'multer';
+import fetch from 'node-fetch';
+import FormData from 'form-data';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, update, get, child , set } from "firebase/database";
+import { getDatabase, ref, update, get, child , set, remove } from "firebase/database";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAOAKfi_6Ie6YW27wH8FTZyjbbkG0eY5EI",
-    authDomain: "robot-battles-scoreboard.firebaseapp.com",
-    databaseURL: "https://robot-battles-scoreboard-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "robot-battles-scoreboard",
-    storageBucket: "robot-battles-scoreboard.appspot.com",
-    messagingSenderId: "596745362832",
-    appId: "1:596745362832:web:c45f2fbf0c3e654125e715",
-    measurementId: "G-6HL7TYFNJG"
-  };
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID
+};
+
 const firebase= initializeApp(firebaseConfig);
 const database= getDatabase(firebase);
 
@@ -105,6 +112,7 @@ app.post("/startPit", (req, res) =>{
 
 app.post("/stopMain",(req,res)=>{
     clearInterval(app.locals.mainTimer);
+    app.locals.mainTimer = null;
     res.end();
 })
 
@@ -115,6 +123,7 @@ app.post("/stopPit",(req,res)=>{
 
 app.put("/resetMain",(req,res)=>{
     clearInterval(app.locals.mainTimer);
+    app.locals.mainTimer = null;
     app.locals.mainTimeRunner=app.locals.mainTime;
     writePitOpen(false);
     res.end();
@@ -194,12 +203,95 @@ app.post("/saveGame", async(req,res)=>{
     res.end();
 })
 
+// Add team details to the database
+async function addTeamDetails(team) {
+    if (!team || !team.id) {
+        return { message: "Invalid team data" };
+    }
+    try {
+        await set(ref(database, `teams/${team.id}`), {
+            name: team.name || "",
+            leader: team.leader || "",
+            logo: team.logo || "",
+            points: team.points || 0
+        });
+        return { message: "Team added successfully" };
+    } catch (error) {
+        console.error(error);
+        return { message: "Failed to add team" };
+    }
+}
+
+// Endpoint to add a team
+// Expects: { id, name, leader, logo (URL), points }
+app.post("/addTeam", async (req, res) => {
+    const team = req.body;
+    // The 'logo' field should be a URL to the image (e.g., from Firebase Storage)
+    const result = await addTeamDetails(team);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(JSON.stringify(result));
+    res.end();
+});
+
+// Function to delete a team by ID
+async function deleteTeam(teamId) {
+    if (!teamId) {
+        return { message: "Invalid team ID" };
+    }
+    try {
+        await remove(ref(database, `teams/${teamId}`));
+        return { message: "Team deleted successfully" };
+    } catch (error) {
+        console.error(error);
+        return { message: "Failed to delete team" };
+    }
+}
+
+// Endpoint to delete a team
+app.delete("/deleteTeam/:id", async (req, res) => {
+    const teamId = req.params.id;
+    const result = await deleteTeam(teamId);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(JSON.stringify(result));
+    res.end();
+});
+
 //Database actions
 function writePitOpen(stat){
     update(ref(database,'/'),{
         pitopen: stat
     });
 }
+
+// Function to get pit status from database
+async function getPitStatus() {
+    const dbRef = ref(database);
+    try {
+        const snapshot = await get(child(dbRef, 'pitopen'));
+        if (snapshot.exists()) {
+            return { pitopen: snapshot.val() };
+        } else {
+            return { pitopen: null };
+        }
+    } catch (error) {
+        console.error(error);
+        return { pitopen: null };
+    }
+}
+
+app.get("/pitstatus", async (req, res) => {
+    const status = await getPitStatus();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(JSON.stringify(status));
+    res.end();
+});
+
+app.get("/timerstatus", (req, res) => {
+    const mainRunning = !!app.locals.mainTimer && !isNaN(app.locals.mainTimeRunner) && app.locals.mainTimeRunner > 0;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(JSON.stringify({ mainRunning }));
+    res.end();
+});
 
 async function getGameCount(){
     const dbRef = ref(database);
@@ -267,27 +359,90 @@ async function getAllGames(){
 }
 
 async function saveGame(gameId,team1name,team2name,team1score,team2score){
-    console.log(gameId+','+team1name+','+team2name+','+team1score+','+team2score)
-    if(gameId && team1name && team2name && team1score && team2score){
-    await set(ref(database, 'games/' + (gameId-1)), {
-        gameid: ""+gameId,
-        team1name: ""+team1name,
-        team1score : ""+team1score,
-        team2name: ""+team2name,
-        team2score: ""+team2score
-    })
-    if(team1score>team2score){
-        app.locals.winnerId= app.locals.gameDetails.team1.id
-    }else if(team2score>team1score){
-        app.locals.winnerId= app.locals.gameDetails.team2.id
-    }else{
-        app.locals.winnerId= 0;
-    }
-    return {message:"Saved Scores Successfuly"};
+    // Expanded game summary log
+    console.log(
+        `Game Summary:\n` +
+        `  Game ID: ${gameId}\n` +
+        `  Team 1: ${team1name} (ID: ${app.locals.gameDetails.team1.id}) - Score: ${team1score}\n` +
+        `  Team 2: ${team2name} (ID: ${app.locals.gameDetails.team2.id}) - Score: ${team2score}`
+    );
+    if(gameId && team1name && team2name && team1score != null && team2score != null){
+        // Ensure scores are numbers for correct comparison
+        const t1score = Number(team1score);
+        const t2score = Number(team2score);
+        let winnerId = 0;
+        let winnerMsg = "";
+        if(t1score > t2score){
+            winnerId = app.locals.gameDetails.team1.id;
+            app.locals.winnerId = winnerId;
+            await postWinnerPoints(winnerId, 3);
+            winnerMsg = `Winner: ${app.locals.gameDetails.team1.name} (ID: ${winnerId})`;
+        }else if(t2score > t1score){
+            winnerId = app.locals.gameDetails.team2.id;
+            app.locals.winnerId = winnerId;
+            await postWinnerPoints(winnerId, 3);
+            winnerMsg = `Winner: ${app.locals.gameDetails.team2.name} (ID: ${winnerId})`;
+        }else{
+            winnerId = 0;
+            app.locals.winnerId = 0;
+            winnerMsg = "It's a draw. No winner.";
+        }
+        await set(ref(database, 'games/' + (gameId-1)), {
+            gameid: ""+gameId,
+            team1name: ""+team1name,
+            team1score : ""+team1score,
+            team2name: ""+team2name,
+            team2score: ""+team2score,
+            winnerId: winnerId
+        })
+        console.log(winnerMsg); // Only print once after DB update
+        return {message:"Saved Scores Successfuly"};
     }else{
         return {message:"Game details not set!"}
     }
-    
 }
+
+// Helper to update winner's points in the database
+async function postWinnerPoints(teamId, pointsToAdd) {
+    if (!teamId) return;
+    const dbRef = ref(database);
+    const teamRef = child(dbRef, `teams/${teamId}`);
+    let currentPoints = 0;
+    try {
+        const snapshot = await get(teamRef);
+        if (snapshot.exists()) {
+            const team = snapshot.val();
+            currentPoints = parseInt(team.points || 0, 10);
+        }
+    } catch (e) {
+        currentPoints = 0;
+    }
+    await update(ref(database, `teams/${teamId}`), {
+        points: currentPoints + pointsToAdd
+    });
+}
+
+const upload = multer();
+const FREEIMAGE_API_KEY = process.env.FREEIMAGE_API_KEY;
+
+app.post('/api/upload-logo', upload.single('logo'), async (req, res) => {
+  try {
+    const formData = new FormData();
+    formData.append('source', req.file.buffer, { filename: req.file.originalname });
+    formData.append('type', 'file');
+    formData.append('key', FREEIMAGE_API_KEY);
+
+    const response = await fetch('https://freeimage.host/api/1/upload', {
+      method: 'POST',
+      body: formData,
+      headers: formData.getHeaders(),
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.listen(port, ()=> {console.log(`Server started on port ${port}`)})
